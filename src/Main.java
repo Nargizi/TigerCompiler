@@ -12,16 +12,15 @@ import java.util.BitSet;
 
 public class Main {
 
-    public static File[] getTigerFiles(String path){
+    public static File[] getTigerFiles(String path) throws Exception {
         File folder = new File(path);
-        System.out.println(folder.toString());
-        System.out.println(folder.getAbsolutePath());
-        return folder.listFiles(new FilenameFilter() {
-            @Override
-            public boolean accept(File dir, String name) {
-                return name.endsWith(".tiger");
-            }
-        });
+        throw new Exception(new Throwable(folder.toString() + "\n" + folder.getAbsolutePath()));
+//        return folder.listFiles(new FilenameFilter() {
+//            @Override
+//            public boolean accept(File dir, String name) {
+//                return name.endsWith(".tiger");
+//            }
+//        });
     }
 
     public static void compile(File file, boolean build_graphviz, boolean write_tokens) throws IOException {
@@ -50,7 +49,7 @@ public class Main {
         }
     }
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws Exception {
         String source_path = null;
         boolean write_tokens = false;
         boolean build_graphviz = false;
