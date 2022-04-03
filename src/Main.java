@@ -1,10 +1,13 @@
 import org.antlr.v4.runtime.*;
+import org.antlr.v4.runtime.atn.ATNConfigSet;
+import org.antlr.v4.runtime.dfa.DFA;
 import org.antlr.v4.runtime.tree.*;
 
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.BitSet;
 
 
 public class Main {
@@ -22,8 +25,10 @@ public class Main {
     public static void compile(File file, boolean build_graphviz, boolean write_tokens) throws IOException {
         CharStream codePointCharStream = CharStreams.fromPath(Path.of(file.getAbsolutePath()));
         TigerLexer lexer = new TigerLexer(codePointCharStream);
+        lexer.addErrorListener(new ErrorHandler(Error.LEXICAL_ERROR));
         TigerParser parser = new TigerParser(new CommonTokenStream(lexer));
-        ParseTree tree = parser.prog();
+        parser.addErrorListener(new ErrorHandler(Error.SYNTAX_ERROR));
+        ParseTree tree = parser.tiger_program();
         ParseTreeWalker walker = new ParseTreeWalker();
 
         File folder = file.getParentFile();
@@ -45,7 +50,7 @@ public class Main {
     }
 
     public static void main(String[] args) throws IOException {
-        String source_path = "";
+        String source_path = null;
         boolean write_tokens = false;
         boolean build_graphviz = false;
         for(int i = 0; i < args.length; ++i){
@@ -59,9 +64,14 @@ public class Main {
                 build_graphviz = true;
             }
         }
+        if (source_path == null){
+            System.exit(Error.ARGUMENT_ERROR.getValue());
+        }
         File[] files = getTigerFiles(source_path);
         for(File f: files){
             compile(f, build_graphviz, write_tokens);
         }
+
+        System.exit(Error.NO_ERROR.getValue());
     }
 }
