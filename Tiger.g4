@@ -50,7 +50,7 @@ value_tail: OPENBRACK expr CLOSEBRACK | /* epsilon */;
 
 //MISC
 WHITESPACE: [ \t\n] -> skip;
-COMMENT: '/*' (.|'\n'|'\r')*? '*/';
+COMMENT: '/*' (.|'\n'|'\r')*? '*/' -> skip;
 INTLIT: '0'|[1-9][0-9]*;
 FLOATLIT: (INTLIT|'0')'.'[0-9]*;
 //WhiteSpace : [ \t]+ -> skip;
