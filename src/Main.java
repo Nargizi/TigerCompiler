@@ -14,13 +14,12 @@ public class Main {
 
     public static File[] getTigerFiles(String path) throws Exception {
         File folder = new File(path);
-        throw new Exception(new Throwable(folder.toString() + "\n" + folder.getAbsolutePath()));
-//        return folder.listFiles(new FilenameFilter() {
-//            @Override
-//            public boolean accept(File dir, String name) {
-//                return name.endsWith(".tiger");
-//            }
-//        });
+        return folder.listFiles(new FilenameFilter() {
+            @Override
+            public boolean accept(File dir, String name) {
+                return name.endsWith(".tiger");
+            }
+        });
     }
 
     public static void compile(File file, boolean build_graphviz, boolean write_tokens) throws IOException {
@@ -49,7 +48,7 @@ public class Main {
         }
     }
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) throws IOException {
         String source_path = null;
         boolean write_tokens = false;
         boolean build_graphviz = false;
@@ -67,10 +66,12 @@ public class Main {
         if (source_path == null){
             System.exit(Error.ARGUMENT_ERROR.getValue());
         }
-        File[] files = getTigerFiles(source_path);
-        for(File f: files){
-            compile(f, build_graphviz, write_tokens);
-        }
+        File file = new File(source_path);
+        compile(file, build_graphviz, write_tokens);
+//        File[] files = getTigerFiles(source_path);
+//        for(File f: files){
+//            compile(f, build_graphviz, write_tokens);
+//        }
 
         System.exit(Error.NO_ERROR.getValue());
     }
