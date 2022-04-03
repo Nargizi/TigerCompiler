@@ -46,7 +46,6 @@ public class Main {
             builder.endDigraph();
             builder.toFile(Path.of(folder.getAbsolutePath(), name + "gv").toString());
         }
-        System.out.println(tree.toStringTree());
     }
 
     public static void main(String[] args) throws IOException {

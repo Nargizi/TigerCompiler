@@ -32,9 +32,7 @@ public class GraphVizBuilder {
     public String toString(){
         return builder.toString();
     }
-
     public void toFile(String path) throws IOException {
-        System.out.printf("HERE");
         BufferedWriter writer = new BufferedWriter(new FileWriter(path));
         writer.append(this.toString());
         writer.flush();

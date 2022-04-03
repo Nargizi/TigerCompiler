@@ -12,7 +12,7 @@ base_type: INT | FLOAT;
 var_declaration: storage_class id_list COLON type optional_init SEMICOLON;
 storage_class: VAR | STATIC;
 id_list: ID | ID COMMA id_list;
-optional_init: ASSIGN const | /* epsilon */;
+optional_init: ASSIGN const_ | /* epsilon */;
 funct: FUNCTION ID OPENPAREN param_list CLOSEPAREN ret_type BEGIN stat_seq END;
 param_list: param param_list_tail | /* epsilon */;
 param_list_tail: COMMA param param_list_tail | /* epsilon */;
@@ -30,10 +30,19 @@ stat: value ASSIGN expr SEMICOLON |
       LET declaration_segment BEGIN stat_seq END;
 optreturn: expr | /* epsilon */;
 optprefix: value ASSIGN | /* epsilon */;
-expr: const | value | expr binary_operator expr | OPENPAREN expr CLOSEPAREN;
-const: INTLIT | FLOATLIT;
-binary_operator: PLUS | MINUS | MULT | DIV | POW | EQUAL | NEQUAL |
-                 LESS | GREAT | LESSEQ | GREATEQ | AND | OR;
+expr: precedence_or;
+const_: INTLIT | FLOATLIT;
+
+precedence_or: precedence_or OR precedence_and | precedence_and;
+precedence_and: precedence_and AND precedence_compare | precedence_compare;
+precedence_compare: precedence_plus_minus ((EQUAL | NEQUAL | LESS |
+                    GREAT | GREATEQ | LESSEQ) precedence_plus_minus)?;
+precedence_plus_minus: precedence_plus_minus (PLUS | MINUS) precedence_mult_div | precedence_mult_div;
+precedence_mult_div: precedence_mult_div (MULT | DIV) precedence_pow | precedence_pow;
+precedence_pow: precedence_paren POW precedence_pow | precedence_paren;
+precedence_paren: OPENPAREN expr CLOSEPAREN | precedence_trail;
+precedence_trail: const_ | value;
+
 expr_list: expr expr_list_tail | /* epsilon */;
 expr_list_tail: COMMA expr expr_list_tail | /* epsilon */;
 value: ID value_tail;
@@ -99,4 +108,4 @@ OR: '|';
 ASSIGN: ':=';
 TASSIGN: '=';
 //MISC.
-ID: [a-zA-Z]+;
+ID: [a-zA-Z][1-9a-zA-Z_]*;

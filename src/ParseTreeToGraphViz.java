@@ -28,6 +28,5 @@ public class ParseTreeToGraphViz extends TigerBaseListener{
         String text = node.getText();
         builder.addAttribute(id.toString(), "shape", "box");
         builder.addAttribute(id.toString(), "label", String.format("\"%s\"", text));
-//        return my_id;
     }
 }
