@@ -14,6 +14,8 @@ public class Main {
 
     public static File[] getTigerFiles(String path){
         File folder = new File(path);
+        System.out.println(folder.toString());
+        System.out.println(folder.getAbsolutePath());
         return folder.listFiles(new FilenameFilter() {
             @Override
             public boolean accept(File dir, String name) {
