@@ -1,4 +1,7 @@
-test_build/
-test_jar/
+build/
+cs8803_bin/
 .idea/
 out/
+tigers/
+src/*.class
+src/Tiger*
