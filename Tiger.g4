@@ -27,7 +27,8 @@ stat: value ASSIGN expr SEMICOLON |
       optprefix ID OPENPAREN expr_list CLOSEPAREN SEMICOLON |
       BREAK SEMICOLON |
       RETURN optreturn SEMICOLON |
-      LET declaration_segment BEGIN stat_seq END;
+      let_stat;
+let_stat: LET declaration_segment BEGIN stat_seq END;
 optreturn: expr | /* epsilon */;
 optprefix: value ASSIGN | /* epsilon */;
 expr: precedence_or;
