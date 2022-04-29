@@ -6,8 +6,9 @@ declaration_segment: type_declaration_list var_declaration_list;
 type_declaration_list: type_declaration type_declaration_list | /* epsilon */;
 var_declaration_list: var_declaration var_declaration_list | /* epsilon */;
 funct_list: funct funct_list | /* epsilon */;
-type_declaration returns [String varType, int varSize, boolean isArray]
-            : TYPE ID TASSIGN type SEMICOLON {$varType = $type.varType;
+type_declaration returns [String id, String varType, int varSize, boolean isArray]
+            : TYPE ID TASSIGN type SEMICOLON {$id = $ID.text;
+                                              $varType = $type.varType;
                                               $varSize = $type.varSize;
                                               $isArray = $type.isArray;}
             ;
@@ -39,8 +40,9 @@ id_list returns [ArrayList<String> idList = new ArrayList<String>()]
                                 $idList.addAll($id_list.idList);}
             ;
 optional_init: ASSIGN const_ | /* epsilon */;
-funct returns [String retType, List<String> params]
-            : FUNCTION ID OPENPAREN param_list CLOSEPAREN ret_type BEGIN stat_seq END {$retType = $ret_type.varType;
+funct returns [String id, String retType, List<String> params]
+            : FUNCTION ID OPENPAREN param_list CLOSEPAREN ret_type BEGIN stat_seq END {$id = $ID.text;
+                                                                                       $retType = $ret_type.varType;
                                                                                        $params = $param_list.params;}
             ;
 param_list returns [List<String> params = new ArrayList<>()]
