@@ -22,7 +22,7 @@ base_type returns [String varType]
             : INT {$varType = $INT.text;}
             | FLOAT {$varType = $FLOAT.text;}
             ;
-var_declaration returns [String storageClass, String varType, int varSize, boolean isArray, ArrayList<String> idList]
+var_declaration returns [String storageClass, String varType, int varSize, boolean isArray, List<String> idList]
             : storage_class id_list COLON type optional_init SEMICOLON {$storageClass = $storage_class.storageClass;
                                                                         $varType = $type.varType;
                                                                         $varSize = $type.varSize;
@@ -39,11 +39,28 @@ id_list returns [ArrayList<String> idList = new ArrayList<String>()]
                                 $idList.addAll($id_list.idList);}
             ;
 optional_init: ASSIGN const_ | /* epsilon */;
-funct: FUNCTION ID OPENPAREN param_list CLOSEPAREN ret_type BEGIN stat_seq END;
-param_list: param param_list_tail | /* epsilon */;
-param_list_tail: COMMA param param_list_tail | /* epsilon */;
-ret_type: COLON type | /* epsilon */;
-param: ID COLON type;
+funct returns [String retType, List<String> params]
+            : FUNCTION ID OPENPAREN param_list CLOSEPAREN ret_type BEGIN stat_seq END {$retType = $ret_type.varType;
+                                                                                       $params = $param_list.params;}
+            ;
+param_list returns [List<String> params = new ArrayList<>()]
+            : param param_list_tail {$params.add($param.varType);
+                                     $params.addAll($param_list_tail.params);}
+            | /* epsilon */
+            ;
+param_list_tail returns [List<String> params = new ArrayList<>()]
+            : COMMA param param_list_tail{$params.add($param.varType);
+                                          $params.addAll($param_list_tail.params);}
+            | /* epsilon */
+            ;
+ret_type returns [String varType]
+            : COLON type {$varType = $type.varType;}
+            | /* epsilon */
+            ;
+param returns [String varType, String id]
+            : ID COLON type {$varType = $type.varType;
+                             $id = $ID.text;}
+            ;
 stat_seq: stat | stat stat_seq;
 stat: value ASSIGN expr SEMICOLON |
       IF expr THEN stat_seq ENDIF SEMICOLON |
@@ -57,24 +74,50 @@ stat: value ASSIGN expr SEMICOLON |
 let_stat: LET declaration_segment BEGIN stat_seq END;
 optreturn: expr | /* epsilon */;
 optprefix: value ASSIGN | /* epsilon */;
-const_: INTLIT | FLOATLIT;
-
 expr returns [String varType]
-            : precedence_or;
-
-precedence_or: precedence_or OR precedence_and | precedence_and;
-precedence_and: precedence_and AND precedence_compare | precedence_compare;
-precedence_compare: precedence_plus_minus ((EQUAL | NEQUAL | LESS |
-                    GREAT | GREATEQ | LESSEQ) precedence_plus_minus)?;
-precedence_plus_minus: precedence_plus_minus (PLUS | MINUS) precedence_mult_div | precedence_mult_div;
-precedence_mult_div: precedence_mult_div (MULT | DIV) precedence_pow | precedence_pow;
-precedence_pow: precedence_paren POW precedence_pow | precedence_paren;
-precedence_paren: OPENPAREN expr CLOSEPAREN | precedence_trail;
-precedence_trail: const_ | value;
-
+            : precedence_or
+            ;
+precedence_or returns [String varType]
+            : precedence_or OR precedence_and
+            | precedence_and
+            ;
+precedence_and returns [String varType]
+            : precedence_and AND precedence_compare
+            | precedence_compare
+            ;
+precedence_compare returns [String varType]
+            : precedence_plus_minus ((EQUAL | NEQUAL | LESS |
+                    GREAT | GREATEQ | LESSEQ) precedence_plus_minus)?
+            ;
+precedence_plus_minus returns [String varType]
+            : precedence_plus_minus (PLUS | MINUS) precedence_mult_div
+            | precedence_mult_div
+            ;
+precedence_mult_div returns [String varType]
+            : precedence_mult_div (MULT | DIV) precedence_pow
+            | precedence_pow
+            ;
+precedence_pow returns [String varType]
+            : precedence_paren POW precedence_pow
+            | precedence_paren
+            ;
+precedence_paren returns [String varType]
+            : OPENPAREN expr CLOSEPAREN
+            | precedence_trail
+            ;
+precedence_trail returns [String varType]
+            : const_
+            | value
+            ;
+value returns [String varType]
+            : ID value_tail
+            ;
+const_ returns [String varType]
+            : INTLIT {$varType = "INT";}
+            | FLOATLIT {$varType = "FLOAT";}
+            ;
 expr_list: expr expr_list_tail | /* epsilon */;
 expr_list_tail: COMMA expr expr_list_tail | /* epsilon */;
-value: ID value_tail;
 value_tail: OPENBRACK expr CLOSEBRACK | /* epsilon */;
 
 //MISC
