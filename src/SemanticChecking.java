@@ -20,6 +20,11 @@ public class SemanticChecking extends TigerBaseListener {
 
     @Override
     public void enterFunct(TigerParser.FunctContext ctx) {
+        if (symbolTable.get(symbolTable.size() - 1).hasSymbol(ctx.id)) {
+            throwError(ErrorType.badError, ctx.getStart().getLine());
+            return;
+        }
+
         Symbol function = new Symbol(ctx.id);
         function.attributes.put("returnType", ctx.retType);
         function.attributes.put("params", ctx.params);
@@ -45,6 +50,11 @@ public class SemanticChecking extends TigerBaseListener {
 
     @Override
     public void enterType_declaration(TigerParser.Type_declarationContext ctx) {
+        if (symbolTable.get(symbolTable.size() - 1).hasSymbol(ctx.id)) {
+            throwError(ErrorType.badError, ctx.getStart().getLine());
+            return;
+        }
+
         Symbol type = new Symbol(ctx.id);
         type.attributes.put("varType", ctx.varType);
         type.attributes.put("varSize", ctx.varSize);
@@ -58,6 +68,11 @@ public class SemanticChecking extends TigerBaseListener {
         for (int i = 0; i < ctx.idList.size(); i++) {
             String varName = ctx.idList.get(i);
 
+            if (symbolTable.get(symbolTable.size() - 1).hasSymbol(varName)) {
+                throwError(ErrorType.badError, ctx.getStart().getLine());
+                return;
+            }
+
             Symbol var = new Symbol(varName);
             var.attributes.put("varType", ctx.varType);
             var.attributes.put("varSize", ctx.varSize);
@@ -69,7 +84,27 @@ public class SemanticChecking extends TigerBaseListener {
 
     @Override
     public void enterParam(TigerParser.ParamContext ctx) {
+        if (symbolTable.get(symbolTable.size() - 1).hasSymbol(ctx.id)) {
+            throwError(ErrorType.badError, ctx.getStart().getLine());
+            return;
+        }
+
         Symbol param = new Symbol(ctx.id);
         param.attributes.put("varType", ctx.varType);
+
+        symbolTable.get(symbolTable.size() - 1).addSymbol(param);
+    }
+
+
+    enum ErrorType {
+        badError;
+    }
+
+    private void throwError(ErrorType error, int Line) {
+        switch (error) {
+            case badError:
+                break;
+            default:
+        }
     }
 }
