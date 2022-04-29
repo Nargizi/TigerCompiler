@@ -6,12 +6,38 @@ declaration_segment: type_declaration_list var_declaration_list;
 type_declaration_list: type_declaration type_declaration_list | /* epsilon */;
 var_declaration_list: var_declaration var_declaration_list | /* epsilon */;
 funct_list: funct funct_list | /* epsilon */;
-type_declaration: TYPE ID TASSIGN type SEMICOLON;
-type: base_type | ARRAY OPENBRACK INTLIT CLOSEBRACK OF base_type | ID;
-base_type: INT | FLOAT;
-var_declaration: storage_class id_list COLON type optional_init SEMICOLON;
-storage_class: VAR | STATIC;
-id_list: ID | ID COMMA id_list;
+type_declaration returns [String varType, int varSize, boolean isArray]
+            : TYPE ID TASSIGN type SEMICOLON {$varType = $type.varType;
+                                              $varSize = $type.varSize;
+                                              $isArray = $type.isArray;}
+            ;
+type returns [String varType, int varSize = 0, boolean isArray = false]
+            : base_type {$varType = $base_type.varType;}
+            | ARRAY OPENBRACK INTLIT CLOSEBRACK OF base_type {$varType = $base_type.varType;
+                                                              $varSize = $INTLIT.int;
+                                                              $isArray = true;}
+            | ID {$varType = $ID.text;}
+            ;
+base_type returns [String varType]
+            : INT {$varType = $INT.text;}
+            | FLOAT {$varType = $FLOAT.text;}
+            ;
+var_declaration returns [String storageClass, String varType, int varSize, boolean isArray, ArrayList<String> idList]
+            : storage_class id_list COLON type optional_init SEMICOLON {$storageClass = $storage_class.storageClass;
+                                                                        $varType = $type.varType;
+                                                                        $varSize = $type.varSize;
+                                                                        $isArray = $type.isArray;
+                                                                        $idList = $id_list.idList;}
+            ;
+storage_class returns [String storageClass]
+            : VAR {$storageClass = $VAR.text;}
+            | STATIC {$storageClass = $STATIC.text;}
+            ;
+id_list returns [ArrayList<String> idList = new ArrayList<String>()]
+            : ID {$idList.add($ID.text);}
+            | ID COMMA id_list {$idList.add($ID.text);
+                                $idList.addAll($id_list.idList);}
+            ;
 optional_init: ASSIGN const_ | /* epsilon */;
 funct: FUNCTION ID OPENPAREN param_list CLOSEPAREN ret_type BEGIN stat_seq END;
 param_list: param param_list_tail | /* epsilon */;
@@ -31,8 +57,10 @@ stat: value ASSIGN expr SEMICOLON |
 let_stat: LET declaration_segment BEGIN stat_seq END;
 optreturn: expr | /* epsilon */;
 optprefix: value ASSIGN | /* epsilon */;
-expr: precedence_or;
 const_: INTLIT | FLOATLIT;
+
+expr returns [String varType]
+            : precedence_or;
 
 precedence_or: precedence_or OR precedence_and | precedence_and;
 precedence_and: precedence_and AND precedence_compare | precedence_compare;
