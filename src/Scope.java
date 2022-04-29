@@ -5,11 +5,16 @@ public class Scope {
 
     // variable name, attribute name, attribute value
     private Map<String, Symbol> symbols;
+    private String name;
 
     public Scope() {
-        symbols = new HashMap<>();
+        this("");
     }
 
+    public Scope(String name) {
+        symbols = new HashMap<>();
+        this.name = name;
+    }
     public void addSymbol(Symbol symbol) {
         symbols.put(symbol.name, symbol);
     }
@@ -22,6 +27,9 @@ public class Scope {
         return symbols.containsKey(symbolName);
     }
 
+    public String getName() {
+        return name;
+    }
 }
 
 class Symbol {

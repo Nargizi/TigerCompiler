@@ -6,28 +6,22 @@ declaration_segment: type_declaration_list var_declaration_list;
 type_declaration_list: type_declaration type_declaration_list | /* epsilon */;
 var_declaration_list: var_declaration var_declaration_list | /* epsilon */;
 funct_list: funct funct_list | /* epsilon */;
-type_declaration returns [String id, String varType, int varSize, boolean isArray]
+type_declaration returns [String id, Type varType]
             : TYPE ID TASSIGN type SEMICOLON {$id = $ID.text;
-                                              $varType = $type.varType;
-                                              $varSize = $type.varSize;
-                                              $isArray = $type.isArray;}
+                                              $varType = $type.varType;}
             ;
-type returns [String varType, int varSize = 0, boolean isArray = false]
-            : base_type {$varType = $base_type.varType;}
-            | ARRAY OPENBRACK INTLIT CLOSEBRACK OF base_type {$varType = $base_type.varType;
-                                                              $varSize = $INTLIT.int;
-                                                              $isArray = true;}
-            | ID {$varType = $ID.text;}
+type returns [Type varType]
+            : base_type {$varType = new Type($base_type.varTypeString);}
+            | ARRAY OPENBRACK INTLIT CLOSEBRACK OF base_type {$varType = new Type($base_type.varTypeString, $INTLIT.int);}
+            | ID {$varType = new Type($ID.text);}
             ;
-base_type returns [String varType]
-            : INT {$varType = $INT.text;}
-            | FLOAT {$varType = $FLOAT.text;}
+base_type returns [String varTypeString]
+            : INT {$varTypeString = $INT.text;}
+            | FLOAT {$varTypeString = $FLOAT.text;}
             ;
-var_declaration returns [String storageClass, String varType, int varSize, boolean isArray, List<String> idList]
+var_declaration returns [String storageClass, Type varType, List<String> idList]
             : storage_class id_list COLON type optional_init SEMICOLON {$storageClass = $storage_class.storageClass;
                                                                         $varType = $type.varType;
-                                                                        $varSize = $type.varSize;
-                                                                        $isArray = $type.isArray;
                                                                         $idList = $id_list.idList;}
             ;
 storage_class returns [String storageClass]
@@ -40,87 +34,110 @@ id_list returns [ArrayList<String> idList = new ArrayList<String>()]
                                 $idList.addAll($id_list.idList);}
             ;
 optional_init: ASSIGN const_ | /* epsilon */;
-funct returns [String id, String retType, List<String> params]
+funct returns [String id, Type retType, List<Type> params]
             : FUNCTION ID OPENPAREN param_list CLOSEPAREN ret_type BEGIN stat_seq END {$id = $ID.text;
                                                                                        $retType = $ret_type.varType;
                                                                                        $params = $param_list.params;}
             ;
-param_list returns [List<String> params = new ArrayList<>()]
+param_list returns [List<Type> params = new ArrayList<>()]
             : param param_list_tail {$params.add($param.varType);
                                      $params.addAll($param_list_tail.params);}
             | /* epsilon */
             ;
-param_list_tail returns [List<String> params = new ArrayList<>()]
+param_list_tail returns [List<Type> params = new ArrayList<>()]
             : COMMA param param_list_tail{$params.add($param.varType);
                                           $params.addAll($param_list_tail.params);}
             | /* epsilon */
             ;
-ret_type returns [String varType]
+ret_type returns [Type varType]
             : COLON type {$varType = $type.varType;}
             | /* epsilon */
             ;
-param returns [String varType, String id]
+param returns [Type varType, String id]
             : ID COLON type {$varType = $type.varType;
                              $id = $ID.text;}
             ;
 stat_seq: stat | stat stat_seq;
-stat: value ASSIGN expr SEMICOLON |
-      IF expr THEN stat_seq ENDIF SEMICOLON |
-      IF expr THEN stat_seq ELSE stat_seq ENDIF SEMICOLON |
-      WHILE expr DO stat_seq ENDDO SEMICOLON |
-      FOR ID ASSIGN expr TO expr DO stat_seq ENDDO SEMICOLON |
-      optprefix ID OPENPAREN expr_list CLOSEPAREN SEMICOLON |
+stat: value_stat |
+      if_stat |
+      if_else_stat |
+      while_stat |
+      for_stat |
+      func_call_stat |
       BREAK SEMICOLON |
-      RETURN optreturn SEMICOLON |
+      ret_stat |
       let_stat;
+
+value_stat: value ASSIGN expr SEMICOLON;
+if_stat: IF expr THEN stat_seq ENDIF SEMICOLON;
+if_else_stat: IF expr THEN stat_seq ELSE stat_seq ENDIF SEMICOLON;
+while_stat: WHILE expr DO stat_seq ENDDO SEMICOLON;
+for_stat: FOR ID ASSIGN expr TO expr DO stat_seq ENDDO SEMICOLON;
+func_call_stat: optprefix ID OPENPAREN expr_list CLOSEPAREN SEMICOLON;
+ret_stat: RETURN optreturn SEMICOLON;
 let_stat: LET declaration_segment BEGIN stat_seq END;
-optreturn: expr | /* epsilon */;
-optprefix: value ASSIGN | /* epsilon */;
-expr returns [String varType]
+optreturn returns [Type varType]
+            : expr
+            | /* epsilon */
+            ;
+optprefix returns [Type varType, String id]
+            : value ASSIGN {$id = $value.id;}
+            | /* epsilon */
+            ;
+expr returns [Type varType]
             : precedence_or
             ;
-precedence_or returns [String varType]
+precedence_or returns [Type varType]
             : precedence_or OR precedence_and
             | precedence_and
             ;
-precedence_and returns [String varType]
+precedence_and returns [Type varType]
             : precedence_and AND precedence_compare
             | precedence_compare
             ;
-precedence_compare returns [String varType]
+precedence_compare returns [Type varType]
             : precedence_plus_minus ((EQUAL | NEQUAL | LESS |
                     GREAT | GREATEQ | LESSEQ) precedence_plus_minus)?
             ;
-precedence_plus_minus returns [String varType]
+precedence_plus_minus returns [Type varType]
             : precedence_plus_minus (PLUS | MINUS) precedence_mult_div
             | precedence_mult_div
             ;
-precedence_mult_div returns [String varType]
+precedence_mult_div returns [Type varType]
             : precedence_mult_div (MULT | DIV) precedence_pow
             | precedence_pow
             ;
-precedence_pow returns [String varType]
+precedence_pow returns [Type varType]
             : precedence_paren POW precedence_pow
             | precedence_paren
             ;
-precedence_paren returns [String varType]
+precedence_paren returns [Type varType]
             : OPENPAREN expr CLOSEPAREN
             | precedence_trail
             ;
-precedence_trail returns [String varType]
+precedence_trail returns [Type varType]
             : const_
             | value
             ;
-value returns [String varType]
-            : ID value_tail
+value returns [Type varType, String id]
+            : ID value_tail {$id = $ID.text;}
             ;
-const_ returns [String varType]
-            : INTLIT {$varType = "INT";}
-            | FLOATLIT {$varType = "FLOAT";}
+const_ returns [Type varType]
+            : INTLIT {$varType = Type.INT;}
+            | FLOATLIT {$varType = Type.FLOAT;}
             ;
-expr_list: expr expr_list_tail | /* epsilon */;
-expr_list_tail: COMMA expr expr_list_tail | /* epsilon */;
-value_tail: OPENBRACK expr CLOSEBRACK | /* epsilon */;
+expr_list returns [List<Type> params = new ArrayList<>()]
+            : expr expr_list_tail
+            | /* epsilon */
+            ;
+expr_list_tail returns [List<Type> params = new ArrayList<>()]
+            : COMMA expr expr_list_tail
+            | /* epsilon */
+            ;
+value_tail returns [boolean isSubscript = false]
+            : OPENBRACK expr CLOSEBRACK {$isSubscript = true;}
+            | /* epsilon */
+            ;
 
 //MISC
 WHITESPACE: [ \t\n] -> skip;
