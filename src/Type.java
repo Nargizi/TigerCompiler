@@ -33,6 +33,10 @@ public class Type {
         return baseType;
     }
 
+    public boolean isArray() {
+        return isArray;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

@@ -17,30 +17,6 @@ public class SemanticChecking extends TigerBaseListener {
         this.save_table = save_table;
         this.table_path = table_path;
         semanticErrorOccurred = false;
-        init_builtins();
-    }
-
-    private void init_builtins(){
-        symbolTable.addScope(); // built_in scope
-        Symbol printi = new Symbol("printi");
-        printi.attributes.put("returnType", Type.VOID);
-        printi.attributes.put("params", List.of(Type.INT));
-        symbolTable.addSymbol(printi);
-
-        Symbol printf = new Symbol("printf");
-        printi.attributes.put("returnType", Type.VOID);
-        printi.attributes.put("params", List.of(Type.FLOAT));
-        symbolTable.addSymbol(printf);
-
-        Symbol not = new Symbol("not");
-        printi.attributes.put("returnType", Type.INT);
-        printi.attributes.put("params", List.of(Type.INT));
-        symbolTable.addSymbol(not);
-
-        Symbol exit = new Symbol("exit");
-        printi.attributes.put("returnType", Type.VOID);
-        printi.attributes.put("params", List.of(Type.INT));
-        symbolTable.addSymbol(exit);
     }
 
     public boolean semanticErrorOccurred() {
@@ -49,7 +25,7 @@ public class SemanticChecking extends TigerBaseListener {
 
     @Override
     public void enterTiger_program(TigerParser.Tiger_programContext ctx) {
-        symbolTable.addScope(); // global scope
+        symbolTable.addScope(new GenericScope()); // global scope
     }
 
     @Override
@@ -64,14 +40,23 @@ public class SemanticChecking extends TigerBaseListener {
 
     @Override
     public void enterFunct(TigerParser.FunctContext ctx) {
-         if (checkSemantic(symbolTable.getLast().hasSymbol(ctx.id), ctx.getStart().getLine())) {
-            return;
-        }
+        checkSemantic(!ctx.hasReturn, ctx.getStart().getLine(), ErrorType.noReturnError);
+        for(var line: ctx.breakLines)
+            checkSemantic(ctx.outsideBreak, line, ErrorType.outsideBreakError);
+        checkSemantic(symbolTable.getLast().hasSymbol(ctx.id), ctx.getStart().getLine(), ErrorType.redefineError);
         Symbol function = new Symbol(ctx.id);
+        ctx.retType = getBaseType(ctx.retType);
+        checkSemantic(ctx.retType.isArray(), ctx.getStart().getLine(), ErrorType.arrayTypeError);
+
+        for(var param : ctx.params){
+            checkSemantic(getBaseType(param).isArray(), ctx.getStart().getLine(), ErrorType.arrayTypeError);
+        }
+
         function.attributes.put("returnType", ctx.retType);
         function.attributes.put("params", ctx.params);
-        symbolTable.get(0).addSymbol(function);
-        symbolTable.addScope(ctx.id); // subroutine scope
+        symbolTable.getLast().addSymbol(function);
+        symbolTable.addScope(new FunctionScope(ctx.id)); // subroutine scope
+
     }
 
     @Override
@@ -81,7 +66,7 @@ public class SemanticChecking extends TigerBaseListener {
 
     @Override
     public void enterLet_stat(TigerParser.Let_statContext ctx) {
-        symbolTable.addScope(); // local scope;
+        symbolTable.addScope(new GenericScope()); // local scope;
     }
 
     @Override
@@ -91,7 +76,7 @@ public class SemanticChecking extends TigerBaseListener {
 
     @Override
     public void exitType_declaration(TigerParser.Type_declarationContext ctx) {
-        if (checkSemantic(symbolTable.getLast().hasSymbol(ctx.id), ctx.getStart().getLine())) {
+        if (checkSemantic(symbolTable.getLast().hasSymbol(ctx.id), ctx.getStart().getLine(), ErrorType.redefineError)) {
             return;
         }
 
@@ -104,14 +89,14 @@ public class SemanticChecking extends TigerBaseListener {
     @Override
     public void exitVar_declaration(TigerParser.Var_declarationContext ctx) {
         int line = ctx.getStart().getLine();
+        if(checkSemantic(!((Type.isBuiltIn(ctx.varType) && !ctx.varType.isArray()) || symbolTable.getSymbol(ctx.varType.getBaseType()) != null), line, ErrorType.undefinedTypeError))
+            return;
         for (int i = 0; i < ctx.idList.size(); i++) {
             String varName = ctx.idList.get(i);
 
-            if (checkSemantic(symbolTable.getLast().hasSymbol(varName), line)) {
+            if (checkSemantic(symbolTable.getLast().hasSymbol(varName), line, ErrorType.redefineError)) {
                 continue;
             }
-            System.out.println(ctx.storageClass);
-            System.out.println(ctx.varType);
             checkSemantic(ctx.storageClass.equalsIgnoreCase("var") && symbolTable.numScopes() == 1, line);
             checkSemantic(ctx.storageClass.equalsIgnoreCase("static") && symbolTable.numScopes() != 1, line);
 
@@ -139,16 +124,18 @@ public class SemanticChecking extends TigerBaseListener {
 
     @Override
     public void enterValue(TigerParser.ValueContext ctx) {
-        Symbol symbol = symbolTable.getSymbol(ctx.id);
-        if(checkSemantic(symbol == null, ctx.getStart().getLine())){
-            ctx.varType = Type.ERROR;
-        }
-        ctx.varType = (Type) symbol.attributes.get("varType");
-        if(ctx.isSubscript){
-            ctx.varType = new Type(((Type)symbolTable.getSymbol(ctx.varType.getBaseType()).attributes.get("varType")).getBaseType());
-        }
-        while(!Type.isBuiltIn(ctx.varType)) {
-            ctx.varType = (Type) symbolTable.getSymbol(ctx.varType.getBaseType()).attributes.get("varType");
+        try {
+            Symbol symbol = symbolTable.getSymbol(ctx.id);
+            if (checkSemantic(symbol == null, ctx.getStart().getLine(), ErrorType.notDefinedError)) {
+                ctx.varType = Type.ERROR;
+            }
+            ctx.varType = (Type) symbol.attributes.get("varType");
+            if (ctx.isSubscript) {
+                ctx.varType = new Type(((Type) symbolTable.getSymbol(ctx.varType.getBaseType()).attributes.get("varType")).getBaseType());
+            }
+            ctx.varType = getBaseType(ctx.varType);
+        } catch (NullPointerException np){
+
         }
     }
 
@@ -176,7 +163,7 @@ public class SemanticChecking extends TigerBaseListener {
         if(ctx.getChildCount() != 1) {
             ctx.varType = ((TigerParser.Precedence_parenContext)((RuleNode)ctx.getChild(0)).getRuleContext()).varType;
             Type right = ((TigerParser.Precedence_powContext)((RuleNode)ctx.getChild(2)).getRuleContext()).varType;
-            checkSemantic(right.equals(Type.FLOAT), ctx.getStart().getLine());
+            checkSemantic(right.equals(Type.FLOAT), ctx.getStart().getLine(), ErrorType.typeError);
         }else{
             ctx.varType = ((TigerParser.Precedence_parenContext)((RuleNode)ctx.getChild(0)).getRuleContext()).varType;
         }
@@ -215,7 +202,7 @@ public class SemanticChecking extends TigerBaseListener {
         if(ctx.getChildCount() != 1) {
             Type left = ((TigerParser.Precedence_plus_minusContext)((RuleNode)ctx.getChild(0)).getRuleContext()).varType;
             Type right = ((TigerParser.Precedence_plus_minusContext)((RuleNode)ctx.getChild(2)).getRuleContext()).varType;
-            checkSemantic(!right.equals(left), ctx.getStart().getLine());
+            checkSemantic(!right.equals(left), ctx.getStart().getLine(), ErrorType.typeError);
             ctx.varType = Type.INT;
         }else{
             ctx.varType = ((TigerParser.Precedence_plus_minusContext)((RuleNode)ctx.getChild(0)).getRuleContext()).varType;
@@ -277,8 +264,8 @@ public class SemanticChecking extends TigerBaseListener {
         TigerParser.ExprContext exprContext  = ((TigerParser.ExprContext)((RuleNode)ctx.getChild(2)).getRuleContext());
         Type rType = exprContext.varType;
         Type lType = valueContext.varType;
-//        System.out.println(rType);
-//        System.out.println(lType);
+        if (rType.equals(Type.ERROR) || lType.equals(Type.ERROR))
+            return;
         int line = ctx.getStart().getLine();
         checkSemantic(!(rType.equals(lType) || (rType.equals(Type.INT) && rType.equals(Type.FLOAT))), line, ErrorType.typeError);
     }
@@ -286,27 +273,27 @@ public class SemanticChecking extends TigerBaseListener {
     @Override
     public void exitIf_else_stat(TigerParser.If_else_statContext ctx) {
         TigerParser.ExprContext exprContext  = ((TigerParser.ExprContext)((RuleNode)ctx.getChild(1)).getRuleContext());
-        checkSemantic(!exprContext.varType.equals(Type.INT), ctx.getStart().getLine());
+        checkSemantic(!exprContext.varType.equals(Type.INT), ctx.getStart().getLine(), ErrorType.conditionError);
     }
 
     @Override
     public void exitIf_stat(TigerParser.If_statContext ctx) {
         TigerParser.ExprContext exprContext  = ((TigerParser.ExprContext)((RuleNode)ctx.getChild(1)).getRuleContext());
-        checkSemantic(!exprContext.varType.equals(Type.INT), ctx.getStart().getLine());
+        checkSemantic(!exprContext.varType.equals(Type.INT), ctx.getStart().getLine(), ErrorType.conditionError);
     }
 
     @Override
     public void exitWhile_stat(TigerParser.While_statContext ctx) {
         TigerParser.ExprContext exprContext  = ((TigerParser.ExprContext)((RuleNode)ctx.getChild(1)).getRuleContext());
-        checkSemantic(!exprContext.varType.equals(Type.INT), ctx.getStart().getLine());
+        checkSemantic(!exprContext.varType.equals(Type.INT), ctx.getStart().getLine(), ErrorType.conditionError);
     }
 
     @Override
     public void exitFor_stat(TigerParser.For_statContext ctx) {
         TigerParser.ExprContext exprContext1  = ((TigerParser.ExprContext)((RuleNode)ctx.getChild(3)).getRuleContext());
         TigerParser.ExprContext exprContext2  = ((TigerParser.ExprContext)((RuleNode)ctx.getChild(5)).getRuleContext());
-        checkSemantic(!exprContext1.varType.equals(Type.INT), ctx.getStart().getLine());
-        checkSemantic(!exprContext2.varType.equals(Type.INT), ctx.getStart().getLine());
+        checkSemantic(!exprContext1.varType.equals(Type.INT), ctx.getStart().getLine(), ErrorType.conditionError);
+        checkSemantic(!exprContext2.varType.equals(Type.INT), ctx.getStart().getLine(), ErrorType.conditionError);
     }
 
     @Override
@@ -339,13 +326,15 @@ public class SemanticChecking extends TigerBaseListener {
         List<Type> args = exprListContext.params;
         Symbol symbol = symbolTable.getSymbol(ctx.ID().getText());
         int line = ctx.getStart().getLine();
-        if(checkSemantic(symbol == null, line))
+        if(checkSemantic(symbol == null, line, ErrorType.notDefinedError))
             return;
         List<Type> params = (List<Type>) symbol.attributes.get("params");
-        if(checkSemantic(params.size() != args.size(), line))
+        if(checkSemantic(params.size() != args.size(), line, ErrorType.incorrectParameterError))
             return;
-        for (int i = 0; i < params.size(); ++i)
-            checkSemantic(!(params.get(i).equals(args.get(i)) || (params.get(i).equals(Type.FLOAT) && args.get(i).equals(Type.INT))), line);
+        for (int i = 0; i < params.size(); ++i) {
+            Type param = getBaseType(params.get(i));
+            checkSemantic(!(param.equals(args.get(i)) || (param.equals(Type.FLOAT) && args.get(i).equals(Type.INT))), line, ErrorType.incorrectParameterError);
+        }
 
         Type returnType = (Type) symbol.attributes.get("returnType");
         checkSemantic(!(lType.equals(Type.VOID) || lType.equals(returnType) || (lType.equals(Type.FLOAT) && returnType.equals(Type.INT))), line);
@@ -354,24 +343,47 @@ public class SemanticChecking extends TigerBaseListener {
     @Override
     public void exitRet_stat(TigerParser.Ret_statContext ctx) {
         TigerParser.OptreturnContext optreturnContext  = ((TigerParser.OptreturnContext)((RuleNode)ctx.getChild(1)).getRuleContext());
-        String funcName = symbolTable.getLast().getName();
+        String funcName = symbolTable.getCurrentFunction();
         Type returnType = (Type) symbolTable.get(0).getSymbol(funcName).attributes.get("returnType");
+        if(returnType == null){
+            returnType = Type.VOID;
+        }
         Type actualType = optreturnContext.varType;
-        checkSemantic(!(actualType.equals(returnType) || (returnType.equals(Type.FLOAT) && actualType.equals(Type.INT))), ctx.getStart().getLine());
+        if(checkSemantic(returnType.equals(Type.INT) && actualType.equals(Type.FLOAT), ctx.getStart().getLine(), ErrorType.narrowingError))
+            return;
+        checkSemantic(!(actualType.equals(returnType) || (returnType.equals(Type.FLOAT) && actualType.equals(Type.INT))), ctx.getStart().getLine(), ErrorType.returnTypeError);
 
+    }
+
+    @Override
+    public void exitValue_tail(TigerParser.Value_tailContext ctx){
+        if (ctx.getChildCount() != 0) {
+            TigerParser.ExprContext exprContext = ((TigerParser.ExprContext) ((RuleNode) ctx.getChild(1)).getRuleContext());
+            checkSemantic(!exprContext.varType.equals(Type.INT), ctx.getStart().getLine(), ErrorType.typeError);
+        }
     }
 
     enum ErrorType {
-        badError, typeError, narrowingError;
+        badError, typeError, narrowingError,
+        redefineError, notDefinedError, undefinedTypeError,
+        returnTypeError, arrayTypeError, noReturnError, incorrectParameterError,
+        conditionError, outsideBreakError;
     }
 
+    private Type getBaseType(Type currType){
+        Type baseType = currType;
+        while (!Type.isBuiltIn(baseType)) {
+            baseType = (Type) symbolTable.getSymbol(baseType.getBaseType()).attributes.get("varType");
+        }
+        return baseType;
+    }
 
     private boolean checkSemantic(boolean cond, int line, ErrorType error){
         if (cond){
             throwError(error, line);
-            return false;
+            return true;
         }
-        return true;
+        return false;
     }
 
     private boolean checkSemantic(boolean cond, int line){
@@ -394,6 +406,34 @@ public class SemanticChecking extends TigerBaseListener {
                 break;
             case narrowingError:
                 System.out.println("Narrowing conversion on assignment");
+                break;
+            case redefineError:
+                System.out.println("Redefinition in same scope");
+                break;
+            case notDefinedError:
+                System.out.println("Not defined");
+                break;
+            case undefinedTypeError:
+                System.out.println("Type not defined");
+                break;
+            case returnTypeError:
+                System.out.println("Incorrect return type");
+                break;
+            case arrayTypeError:
+                System.out.println("Illegal use of array type");
+                break;
+            case noReturnError:
+                System.out.println("Missing return statement");
+                break;
+            case incorrectParameterError:
+                System.out.println("Incorrect type or number of parameters");
+                break;
+            case conditionError:
+                System.out.println("Condition must be of type int");
+                break;
+            case outsideBreakError:
+                System.out.println("Break statement outside of loop");
+                break;
             default:
         }
     }
