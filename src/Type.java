@@ -6,15 +6,15 @@ public class Type {
     public static Type VOID = new Type("void");
     public static Type ERROR = new Type("error");
 
-    private boolean isArray;
-    private int arraySize;
-    private String baseType;
+    private final boolean isArray;
+    private final int arraySize;
+    private final String baseType;
 
     public static boolean isBuiltIn(Type type){
-        if (type.getBaseType().equals("float") || type.getBaseType().equals("int")){
-            return true;
-        }
-        return false;
+        return type.getBaseType().equals("float") ||
+                type.getBaseType().equals("int") ||
+                type.getBaseType().equals("error") ||
+                type.getBaseType().equals("void");
     }
 
     public Type(String baseType, int arraySize){
@@ -35,6 +35,10 @@ public class Type {
 
     public int getArraySize() {
         return arraySize;
+    }
+
+    public boolean isArray() {
+        return isArray;
     }
 
     @Override

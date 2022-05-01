@@ -34,10 +34,13 @@ id_list returns [ArrayList<String> idList = new ArrayList<String>()]
                                 $idList.addAll($id_list.idList);}
             ;
 optional_init: ASSIGN const_ | /* epsilon */;
-funct returns [String id, Type retType, List<Type> params]
+funct returns [String id, Type retType, List<Type> params, boolean hasReturn, boolean outsideBreak, List<Integer> breakLines, boolean semError = false]
             : FUNCTION ID OPENPAREN param_list CLOSEPAREN ret_type BEGIN stat_seq END {$id = $ID.text;
                                                                                        $retType = $ret_type.varType;
-                                                                                       $params = $param_list.params;}
+                                                                                       $params = $param_list.params;
+                                                                                       $hasReturn = $stat_seq.hasReturn;
+                                                                                       $outsideBreak = $stat_seq.outsideBreak;
+                                                                                       $breakLines = $stat_seq.breakLines;}
             ;
 param_list returns [List<Type> params = new ArrayList<>()]
             : param param_list_tail {$params.add($param.varType);
@@ -51,31 +54,62 @@ param_list_tail returns [List<Type> params = new ArrayList<>()]
             ;
 ret_type returns [Type varType]
             : COLON type {$varType = $type.varType;}
-            | /* epsilon */
+            | /* epsilon */ {$varType = Type.VOID;}
             ;
 param returns [Type varType, String id]
             : ID COLON type {$varType = $type.varType;
                              $id = $ID.text;}
             ;
-stat_seq: stat | stat stat_seq;
-stat: value_stat |
-      if_stat |
-      if_else_stat |
-      while_stat |
-      for_stat |
+stat_seq returns [boolean hasReturn, boolean outsideBreak, List<Integer> breakLines]
+            : stat {$hasReturn = $stat.hasReturn;
+                    $outsideBreak = $stat.outsideBreak;
+                    $breakLines= $stat.breakLines;}
+            | stat stat_seq {$hasReturn = $stat.hasReturn || $stat_seq.hasReturn;
+                            $outsideBreak = $stat.outsideBreak || $stat_seq.outsideBreak;
+                            $breakLines = $stat.breakLines;
+                            $breakLines.addAll($stat_seq.breakLines);}
+            ;
+stat returns [boolean hasReturn, boolean outsideBreak = false, List<Integer> breakLines = new ArrayList<>();]:
+      value_stat |
+      if_stat  {$hasReturn = $if_stat.hasReturn;
+                $outsideBreak = $if_stat.outsideBreak;
+                $breakLines = $if_stat.breakLines;}|
+      if_else_stat {$hasReturn = $if_else_stat.hasReturn;
+                    $outsideBreak = $if_else_stat.outsideBreak;
+                    $breakLines = $if_else_stat.breakLines;}|
+      while_stat {$hasReturn = $while_stat.hasReturn;} |
+      for_stat {$hasReturn = $for_stat.hasReturn;} |
       func_call_stat |
-      BREAK SEMICOLON |
-      ret_stat |
-      let_stat;
+      BREAK SEMICOLON {$outsideBreak = true;
+                       $breakLines = List.of($BREAK.getLine());} |
+      ret_stat {$hasReturn = true;} |
+      let_stat {$hasReturn = $let_stat.hasReturn;
+                $outsideBreak = $let_stat.outsideBreak;
+                $breakLines = $let_stat.breakLines;};
 
 value_stat: value ASSIGN expr SEMICOLON;
-if_stat: IF expr THEN stat_seq ENDIF SEMICOLON;
-if_else_stat: IF expr THEN stat_seq ELSE stat_seq ENDIF SEMICOLON;
-while_stat: WHILE expr DO stat_seq ENDDO SEMICOLON;
-for_stat: FOR ID ASSIGN expr TO expr DO stat_seq ENDDO SEMICOLON;
+if_stat returns [boolean hasReturn, boolean outsideBreak, List<Integer> breakLines]
+                : IF expr THEN stat_seq ENDIF SEMICOLON {$hasReturn = $stat_seq.hasReturn;
+                                                         $outsideBreak = $stat_seq.outsideBreak;
+                                                         $breakLines = $stat_seq.breakLines;}
+                ;
+if_else_stat returns [boolean hasReturn, boolean outsideBreak, List<Integer> breakLines]
+                : IF expr THEN a=stat_seq ELSE b=stat_seq ENDIF SEMICOLON {$hasReturn = $a.hasReturn || $b.hasReturn;
+                                                                           $outsideBreak = $a.outsideBreak || $b.outsideBreak;
+                                                                           $breakLines = $a.breakLines;
+                                                                           $breakLines.addAll($b.breakLines);}
+                ;
+while_stat returns [boolean hasReturn]: WHILE expr DO stat_seq ENDDO SEMICOLON {$hasReturn = $stat_seq.hasReturn;};
+for_stat returns [boolean hasReturn]: FOR ID ASSIGN expr TO expr DO stat_seq ENDDO SEMICOLON {$hasReturn = $stat_seq.hasReturn;};
 func_call_stat: optprefix ID OPENPAREN expr_list CLOSEPAREN SEMICOLON;
-ret_stat: RETURN optreturn SEMICOLON;
-let_stat: LET declaration_segment BEGIN stat_seq END;
+ret_stat
+            : RETURN optreturn SEMICOLON
+            ;
+let_stat returns [boolean hasReturn, boolean outsideBreak, List<Integer> breakLines]
+            : LET declaration_segment BEGIN stat_seq END {$hasReturn = $stat_seq.hasReturn;
+                                                          $outsideBreak = $stat_seq.outsideBreak;
+                                                          $breakLines = $stat_seq.breakLines;}
+            ;
 optreturn returns [Type varType]
             : expr
             | /* epsilon */
@@ -97,7 +131,7 @@ precedence_and returns [Type varType]
             ;
 precedence_compare returns [Type varType]
             : precedence_plus_minus ((EQUAL | NEQUAL | LESS |
-                    GREAT | GREATEQ | LESSEQ) precedence_plus_minus)?
+                    GREAT | GREATEQ | LESSEQ) precedence_plus_minus)*
             ;
 precedence_plus_minus returns [Type varType]
             : precedence_plus_minus (PLUS | MINUS) precedence_mult_div
@@ -200,4 +234,4 @@ OR: '|';
 ASSIGN: ':=';
 TASSIGN: '=';
 //MISC.
-ID: [a-zA-Z][1-9a-zA-Z_]*;
+ID: [a-zA-Z][0-9a-zA-Z_]*;

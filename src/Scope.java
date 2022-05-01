@@ -1,17 +1,29 @@
 import java.util.HashMap;
 import java.util.Map;
 
-public class Scope {
+public interface Scope{
+
+    void addSymbol(Symbol symbol);
+
+    Symbol getSymbol(String symbolName);
+
+    boolean hasSymbol(String symbolName);
+
+    void removeSymbol(String symbolName);
+
+    String getName();
+}
+class GenericScope implements Scope{
 
     // variable name, attribute name, attribute value
     public Map<String, Symbol> symbols;
     private String name;
 
-    public Scope() {
+    public GenericScope() {
         this("");
     }
 
-    public Scope(String name) {
+    public GenericScope(String name) {
         symbols = new HashMap<>();
         this.name = name;
     }
@@ -27,10 +39,22 @@ public class Scope {
         return symbols.containsKey(symbolName);
     }
 
+    public void removeSymbol(String symbolName){ symbols.remove(symbolName);}
+
+    @Override
     public String getName() {
         return name;
     }
+
+
 }
+
+class FunctionScope extends GenericScope{
+    public FunctionScope(String name) {
+        super(name);
+    }
+}
+
 
 class Symbol {
     public String name;
