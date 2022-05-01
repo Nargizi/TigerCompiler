@@ -35,7 +35,7 @@ public class IRGenerator {
     }
 
     public void addCommand(Command command, String... args) {
-        activeFunction.addCommand(command, args);
+//         activeFunction.addCommand(command, args);
     }
 
 }
