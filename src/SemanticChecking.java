@@ -396,43 +396,43 @@ public class SemanticChecking extends TigerBaseListener {
 
     private void throwError(ErrorType error, int Line) {
         semanticErrorOccurred = true;
-        System.out.print("line " + Line + ": ");
+        System.err.print("line " + Line + ": ");
         switch (error) {
             case badError:
-                System.out.println("SEMANTIC ERROR OCCURRED");
+                System.err.println("SEMANTIC ERROR OCCURRED");
                 break;
             case typeError:
-                System.out.println("Type mismatch");
+                System.err.println("Type mismatch");
                 break;
             case narrowingError:
-                System.out.println("Narrowing conversion on assignment");
+                System.err.println("Narrowing conversion on assignment");
                 break;
             case redefineError:
-                System.out.println("Redefinition in same scope");
+                System.err.println("Redefinition in same scope");
                 break;
             case notDefinedError:
-                System.out.println("Not defined");
+                System.err.println("Not defined");
                 break;
             case undefinedTypeError:
-                System.out.println("Type not defined");
+                System.err.println("Type not defined");
                 break;
             case returnTypeError:
-                System.out.println("Incorrect return type");
+                System.err.println("Incorrect return type");
                 break;
             case arrayTypeError:
-                System.out.println("Illegal use of array type");
+                System.err.println("Illegal use of array type");
                 break;
             case noReturnError:
-                System.out.println("Missing return statement");
+                System.err.println("Missing return statement");
                 break;
             case incorrectParameterError:
-                System.out.println("Incorrect type or number of parameters");
+                System.err.println("Incorrect type or number of parameters");
                 break;
             case conditionError:
-                System.out.println("Condition must be of type int");
+                System.err.println("Condition must be of type int");
                 break;
             case outsideBreakError:
-                System.out.println("Break statement outside of loop");
+                System.err.println("Break statement outside of loop");
                 break;
             default:
         }
