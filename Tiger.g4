@@ -1,7 +1,7 @@
 grammar Tiger;
 
 //Grammar
-tiger_program: PROGRAM ID LET declaration_segment BEGIN funct_list END;
+tiger_program returns [String id]: PROGRAM ID LET declaration_segment BEGIN funct_list END {$id = $ID.text;};
 declaration_segment: type_declaration_list var_declaration_list;
 type_declaration_list: type_declaration type_declaration_list | /* epsilon */;
 var_declaration_list: var_declaration var_declaration_list | /* epsilon */;

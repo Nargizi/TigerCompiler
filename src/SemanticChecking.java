@@ -11,9 +11,11 @@ public class SemanticChecking extends TigerBaseListener {
     private boolean save_table;
     private Path table_path;
     private boolean semanticErrorOccurred;
+    private IRGenerator irGenerator;
 
     public SemanticChecking(boolean save_table, Path table_path) {
         symbolTable = new SymbolTable();
+        irGenerator = new IRGenerator();
         this.save_table = save_table;
         this.table_path = table_path;
         semanticErrorOccurred = false;
@@ -50,6 +52,8 @@ public class SemanticChecking extends TigerBaseListener {
     @Override
     public void enterTiger_program(TigerParser.Tiger_programContext ctx) {
         symbolTable.addScope(); // global scope
+
+        irGenerator.startProgram(ctx.id);
     }
 
     @Override
@@ -64,7 +68,7 @@ public class SemanticChecking extends TigerBaseListener {
 
     @Override
     public void enterFunct(TigerParser.FunctContext ctx) {
-         if (checkSemantic(symbolTable.getLast().hasSymbol(ctx.id), ctx.getStart().getLine())) {
+        if (checkSemantic(symbolTable.getLast().hasSymbol(ctx.id), ctx.getStart().getLine())) {
             return;
         }
         Symbol function = new Symbol(ctx.id);
@@ -72,6 +76,8 @@ public class SemanticChecking extends TigerBaseListener {
         function.attributes.put("params", ctx.params);
         symbolTable.get(0).addSymbol(function);
         symbolTable.addScope(ctx.id); // subroutine scope
+
+        irGenerator.startFunction(ctx.id, ctx.retType);
     }
 
     @Override
@@ -120,6 +126,11 @@ public class SemanticChecking extends TigerBaseListener {
             var.attributes.put("storageClass", ctx.storageClass);
 
             symbolTable.addSymbol(var);
+
+            if (ctx.varType.getBaseType().equals("int"))
+                irGenerator.addInt(varName, ctx.varType.getArraySize());
+            else
+                irGenerator.addFloat(varName, ctx.varType.getArraySize());
         }
     }
 
@@ -134,6 +145,8 @@ public class SemanticChecking extends TigerBaseListener {
         param.attributes.put("varType", ctx.varType);
 
         symbolTable.addSymbol(param);
+
+        irGenerator.addParam(ctx.id, ctx.varType);
     }
 
 

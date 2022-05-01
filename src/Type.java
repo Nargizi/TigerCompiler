@@ -33,6 +33,10 @@ public class Type {
         return baseType;
     }
 
+    public int getArraySize() {
+        return arraySize;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
