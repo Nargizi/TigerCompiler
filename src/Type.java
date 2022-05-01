@@ -1,14 +1,21 @@
 import java.util.Objects;
 
 public class Type {
-    public static Type FLOAT = new Type("FLOAT");
-    public static Type INT = new Type("INT");
-    public static Type VOID = new Type("VOID");
-    public static Type ERROR = new Type("ERROR");
+    public static Type FLOAT = new Type("float");
+    public static Type INT = new Type("int");
+    public static Type VOID = new Type("void");
+    public static Type ERROR = new Type("error");
 
     private boolean isArray;
     private int arraySize;
     private String baseType;
+
+    public static boolean isBuiltIn(Type type){
+        if (type.getBaseType().equals("float") || type.getBaseType().equals("int")){
+            return true;
+        }
+        return false;
+    }
 
     public Type(String baseType, int arraySize){
         isArray = true;
@@ -22,6 +29,10 @@ public class Type {
         this.arraySize = -1;
     }
 
+    public String getBaseType() {
+        return baseType;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -33,5 +44,13 @@ public class Type {
     @Override
     public int hashCode() {
         return Objects.hash(isArray, arraySize, baseType);
+    }
+
+    @Override
+    public String toString() {
+        if (isArray)
+            return baseType + "[" + arraySize + "]";
+        else
+            return baseType;
     }
 }

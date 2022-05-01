@@ -4,7 +4,7 @@ import java.util.Map;
 public class Scope {
 
     // variable name, attribute name, attribute value
-    private Map<String, Symbol> symbols;
+    public Map<String, Symbol> symbols;
     private String name;
 
     public Scope() {
@@ -39,5 +39,19 @@ class Symbol {
     public Symbol(String name) {
         this.name = name;
         attributes = new HashMap<>();
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder builder = new StringBuilder();
+        builder.append(name).append(": ");
+        for(var pair: attributes.entrySet()){
+
+            if (pair.getValue() instanceof String)
+                builder.append((String)pair.getValue()).append(", ");
+            else
+                builder.append(pair.getValue().toString()).append(", ");
+        }
+        return builder.toString();
     }
 }

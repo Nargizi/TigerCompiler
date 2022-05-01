@@ -119,8 +119,9 @@ precedence_trail returns [Type varType]
             : const_
             | value
             ;
-value returns [Type varType, String id]
-            : ID value_tail {$id = $ID.text;}
+value returns [Type varType, String id, boolean isSubscript]
+            : ID value_tail {$id = $ID.text;
+                             $isSubscript = $value_tail.isSubscript;}
             ;
 const_ returns [Type varType]
             : INTLIT {$varType = Type.INT;}

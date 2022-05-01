@@ -2,7 +2,8 @@ public enum Error {
     NO_ERROR(0),
     ARGUMENT_ERROR(1),
     LEXICAL_ERROR(2),
-    SYNTAX_ERROR(3);
+    SYNTAX_ERROR(3),
+    SEMANTIC_ERROR(4);
 
     private final int value;
 
