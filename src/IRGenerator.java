@@ -1,7 +1,12 @@
+import javax.xml.stream.events.Comment;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
+enum Command {
+    ASSIGN
+}
 
 public class IRGenerator {
     public IRProgram program;
@@ -30,8 +35,8 @@ public class IRGenerator {
         activeFunction.addParam(paramName, type);
     }
 
-    public void addCommand() {
-
+    public void addCommand(Command command, String... args) {
+        activeFunction.addCommand(command, args);
     }
 
 }
@@ -138,6 +143,18 @@ class IRFunction extends IRScope {
 
         List<Map.Entry<String, Integer>> varList = (type.equals("int")) ? intList : floatList;
         varList.add(new AbstractMap.SimpleEntry<>(paramName, 0));
+    }
+
+    public void addCommand(Command command, String... args) {
+        StringBuilder commandBuilder = new StringBuilder();
+
+        switch (command) {
+            case ASSIGN:
+                commandBuilder.append("assign ").append(args[0]).append(args[1]);
+                break;
+        }
+
+        commandList.add(commandBuilder.toString());
     }
 
     @Override

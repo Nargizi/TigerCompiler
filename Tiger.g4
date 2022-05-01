@@ -19,10 +19,12 @@ base_type returns [String varTypeString]
             : INT {$varTypeString = $INT.text;}
             | FLOAT {$varTypeString = $FLOAT.text;}
             ;
-var_declaration returns [String storageClass, Type varType, List<String> idList]
+var_declaration returns [String storageClass, Type varType, List<String> idList, boolean isAssigned, String varValue]
             : storage_class id_list COLON type optional_init SEMICOLON {$storageClass = $storage_class.storageClass;
                                                                         $varType = $type.varType;
-                                                                        $idList = $id_list.idList;}
+                                                                        $idList = $id_list.idList;
+                                                                        $isAssigned = $optional_init.isAssigned;
+                                                                        $varValue = $optional_init.varValue;}
             ;
 storage_class returns [String storageClass]
             : VAR {$storageClass = $VAR.text;}
@@ -33,7 +35,9 @@ id_list returns [ArrayList<String> idList = new ArrayList<String>()]
             | ID COMMA id_list {$idList.add($ID.text);
                                 $idList.addAll($id_list.idList);}
             ;
-optional_init: ASSIGN const_ | /* epsilon */;
+optional_init returns [boolean isAssigned, String varValue]
+            : ASSIGN const_ {$isAssigned = true; $varValue = $const_.varValue;}
+            | /* epsilon */ {$isAssigned = false; $varValue = "";};
 funct returns [String id, Type retType, List<Type> params, boolean hasReturn, boolean outsideBreak, List<Integer> breakLines, boolean semError = false]
             : FUNCTION ID OPENPAREN param_list CLOSEPAREN ret_type BEGIN stat_seq END {$id = $ID.text;
                                                                                        $retType = $ret_type.varType;
@@ -87,7 +91,8 @@ stat returns [boolean hasReturn, boolean outsideBreak = false, List<Integer> bre
                 $outsideBreak = $let_stat.outsideBreak;
                 $breakLines = $let_stat.breakLines;};
 
-value_stat: value ASSIGN expr SEMICOLON;
+value_stat returns [String valueID]
+            : value ASSIGN expr SEMICOLON; // TOOOOODOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
 if_stat returns [boolean hasReturn, boolean outsideBreak, List<Integer> breakLines]
                 : IF expr THEN stat_seq ENDIF SEMICOLON {$hasReturn = $stat_seq.hasReturn;
                                                          $outsideBreak = $stat_seq.outsideBreak;
@@ -157,9 +162,9 @@ value returns [Type varType, String id, boolean isSubscript]
             : ID value_tail {$id = $ID.text;
                              $isSubscript = $value_tail.isSubscript;}
             ;
-const_ returns [Type varType]
-            : INTLIT {$varType = Type.INT;}
-            | FLOATLIT {$varType = Type.FLOAT;}
+const_ returns [Type varType, String varValue]
+            : INTLIT {$varType = Type.INT; $varValue = $INTLIT.text;}
+            | FLOATLIT {$varType = Type.FLOAT; $varValue = $FLOATLIT.text;}
             ;
 expr_list returns [List<Type> params = new ArrayList<>()]
             : expr expr_list_tail

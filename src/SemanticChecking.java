@@ -127,6 +127,8 @@ public class SemanticChecking extends TigerBaseListener {
                 irGenerator.addInt(varName, ctx.varType.getArraySize());
             else
                 irGenerator.addFloat(varName, ctx.varType.getArraySize());
+
+            irGenerator.addCommand(Command.ASSIGN, varName, ctx.varValue);
         }
     }
 
