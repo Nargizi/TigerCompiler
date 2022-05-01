@@ -151,13 +151,13 @@ class IRFunction extends IRScope {
     public void addCommand(Command command, String... args) {
         StringBuilder commandBuilder = new StringBuilder();
 
-        switch (command) {
-            case ASSIGN:
-                String secondArg = args[1];
-                if (args[1] == "temp") secondArg = "_t" + temp_count;
-                commandBuilder.append("assign ").append(args[0]).append(secondArg);
-                break;
-        }
+//        switch (command) {
+//            case ASSIGN:
+//                String secondArg = args[1];
+//                if (args[1] == "temp") secondArg = "_t" + temp_count;
+//                commandBuilder.append("assign ").append(args[0]).append(secondArg);
+//                break;
+//        }
 
         commandList.add(commandBuilder.toString());
     }
