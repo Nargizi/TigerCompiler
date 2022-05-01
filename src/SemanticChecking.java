@@ -32,7 +32,8 @@ public class SemanticChecking extends TigerBaseListener {
     public void exitTiger_program(TigerParser.Tiger_programContext ctx) {
         symbolTable.popScope();
         try {
-            symbolTable.toFile(table_path.toString());
+            if(save_table)
+                symbolTable.toFile(table_path.toString());
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -40,7 +41,8 @@ public class SemanticChecking extends TigerBaseListener {
 
     @Override
     public void enterFunct(TigerParser.FunctContext ctx) {
-        if(checkSemantic(!ctx.hasReturn, ctx.getStop().getLine(), ErrorType.noReturnError)) {
+        System.out.println(ctx.retType);
+        if(checkSemantic(!ctx.hasReturn && !ctx.retType.equals(Type.VOID), ctx.getStop().getLine(), ErrorType.noReturnError)) {
             checkSemantic(!ctx.hasReturn, ctx.getStart().getLine(), ErrorType.noReturnError);
             ctx.semError = true;
         }
@@ -61,7 +63,7 @@ public class SemanticChecking extends TigerBaseListener {
 
         function.attributes.put("returnType", ctx.retType);
         function.attributes.put("params", ctx.params);
-        symbolTable.getLast().addSymbol(function);
+        symbolTable.addSymbol(function);
         symbolTable.addScope(new FunctionScope(ctx.id)); // subroutine scope
 
     }

@@ -54,7 +54,7 @@ param_list_tail returns [List<Type> params = new ArrayList<>()]
             ;
 ret_type returns [Type varType]
             : COLON type {$varType = $type.varType;}
-            | /* epsilon */ {$varType = Type.ERROR;}
+            | /* epsilon */ {$varType = Type.VOID;}
             ;
 param returns [Type varType, String id]
             : ID COLON type {$varType = $type.varType;
@@ -234,4 +234,4 @@ OR: '|';
 ASSIGN: ':=';
 TASSIGN: '=';
 //MISC.
-ID: [a-zA-Z][1-9a-zA-Z_]*;
+ID: [a-zA-Z][0-9a-zA-Z_]*;

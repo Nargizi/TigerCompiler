@@ -43,7 +43,7 @@ public class SymbolTable {
             table.add(scope);
             indentation++;
             savedTable.append("\t".repeat(indentation))
-                    .append("Scope ").append(table.size()).append(":").append("\n");
+                    .append("Scope ").append(table.size() - 1).append(":").append("\n");
         }
 
         public void popScope(){
