@@ -54,7 +54,7 @@ param_list_tail returns [List<Type> params = new ArrayList<>()]
             ;
 ret_type returns [Type varType]
             : COLON type {$varType = $type.varType;}
-            | /* epsilon */
+            | /* epsilon */ {$varType = Type.ERROR;}
             ;
 param returns [Type varType, String id]
             : ID COLON type {$varType = $type.varType;
@@ -131,7 +131,7 @@ precedence_and returns [Type varType]
             ;
 precedence_compare returns [Type varType]
             : precedence_plus_minus ((EQUAL | NEQUAL | LESS |
-                    GREAT | GREATEQ | LESSEQ) precedence_plus_minus)?
+                    GREAT | GREATEQ | LESSEQ) precedence_plus_minus)*
             ;
 precedence_plus_minus returns [Type varType]
             : precedence_plus_minus (PLUS | MINUS) precedence_mult_div

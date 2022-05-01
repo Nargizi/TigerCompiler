@@ -11,7 +11,10 @@ public class Type {
     private String baseType;
 
     public static boolean isBuiltIn(Type type){
-        if (type.getBaseType().equals("float") || type.getBaseType().equals("int")){
+        if (type.getBaseType().equals("float") ||
+                type.getBaseType().equals("int") ||
+                type.getBaseType().equals("error") ||
+                type.getBaseType().equals("void")){
             return true;
         }
         return false;

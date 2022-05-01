@@ -40,16 +40,18 @@ public class SemanticChecking extends TigerBaseListener {
 
     @Override
     public void enterFunct(TigerParser.FunctContext ctx) {
-        checkSemantic(!ctx.hasReturn, ctx.getStart().getLine(), ErrorType.noReturnError);
+        checkSemantic(!ctx.hasReturn, ctx.getStop().getLine(), ErrorType.noReturnError);
         for(var line: ctx.breakLines)
             checkSemantic(ctx.outsideBreak, line, ErrorType.outsideBreakError);
         checkSemantic(symbolTable.getLast().hasSymbol(ctx.id), ctx.getStart().getLine(), ErrorType.redefineError);
         Symbol function = new Symbol(ctx.id);
         ctx.retType = getBaseType(ctx.retType);
-        checkSemantic(ctx.retType.isArray(), ctx.getStart().getLine(), ErrorType.arrayTypeError);
+        if(checkSemantic(ctx.retType.isArray(), ctx.getStart().getLine(), ErrorType.arrayTypeError))
+            ctx.retType = Type.ERROR;
 
-        for(var param : ctx.params){
-            checkSemantic(getBaseType(param).isArray(), ctx.getStart().getLine(), ErrorType.arrayTypeError);
+        for(int i = 0; i < ctx.params.size(); ++i){
+            if(checkSemantic(getBaseType(ctx.params.get(i)).isArray(), ctx.getStart().getLine(), ErrorType.arrayTypeError))
+                ctx.params.set(i, Type.ERROR);
         }
 
         function.attributes.put("returnType", ctx.retType);
@@ -97,8 +99,10 @@ public class SemanticChecking extends TigerBaseListener {
             if (checkSemantic(symbolTable.getLast().hasSymbol(varName), line, ErrorType.redefineError)) {
                 continue;
             }
-            checkSemantic(ctx.storageClass.equalsIgnoreCase("var") && symbolTable.numScopes() == 1, line);
-            checkSemantic(ctx.storageClass.equalsIgnoreCase("static") && symbolTable.numScopes() != 1, line);
+            if(checkSemantic(ctx.storageClass.equalsIgnoreCase("var") && symbolTable.numScopes() == 1, line))
+                return;
+            if(checkSemantic(ctx.storageClass.equalsIgnoreCase("static") && symbolTable.numScopes() != 1, line))
+                return;
 
             Symbol var = new Symbol(varName);
             var.attributes.put("varType", ctx.varType);
@@ -199,7 +203,10 @@ public class SemanticChecking extends TigerBaseListener {
 
     @Override
     public void exitPrecedence_compare(TigerParser.Precedence_compareContext ctx) {
-        if(ctx.getChildCount() != 1) {
+        if(checkSemantic(ctx.getChildCount() > 3, ctx.getStart().getLine(), ErrorType.comparisonError)) {
+            ctx.varType = Type.ERROR;
+        }
+        else if(ctx.getChildCount() != 1) {
             Type left = ((TigerParser.Precedence_plus_minusContext)((RuleNode)ctx.getChild(0)).getRuleContext()).varType;
             Type right = ((TigerParser.Precedence_plus_minusContext)((RuleNode)ctx.getChild(2)).getRuleContext()).varType;
             checkSemantic(!right.equals(left), ctx.getStart().getLine(), ErrorType.typeError);
@@ -367,7 +374,7 @@ public class SemanticChecking extends TigerBaseListener {
         badError, typeError, narrowingError,
         redefineError, notDefinedError, undefinedTypeError,
         returnTypeError, arrayTypeError, noReturnError, incorrectParameterError,
-        conditionError, outsideBreakError;
+        conditionError, outsideBreakError, comparisonError;
     }
 
     private Type getBaseType(Type currType){
@@ -434,6 +441,8 @@ public class SemanticChecking extends TigerBaseListener {
             case outsideBreakError:
                 System.err.println("Break statement outside of loop");
                 break;
+            case comparisonError:
+                System.out.println("Comparison is not associative operator");
             default:
         }
     }
