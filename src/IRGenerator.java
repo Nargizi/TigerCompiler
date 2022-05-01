@@ -1,11 +1,10 @@
-import javax.xml.stream.events.Comment;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 enum Command {
-    ASSIGN
+    ASSIGN, EXPR, WHILE_LOOP, FOR_LOOP, RETURN
 }
 
 public class IRGenerator {
@@ -117,6 +116,8 @@ class IRFunction extends IRScope {
     private final List<Map.Entry<String, Integer>> floatList;
     private final List<String> commandList;
 
+    private int temp_count;
+
     public IRFunction(String name, Type returnType) {
         this.name = name;
         this.returnType = returnType.getBaseType();
@@ -125,6 +126,8 @@ class IRFunction extends IRScope {
         intList = new ArrayList<>();
         floatList = new ArrayList<>();
         commandList = new ArrayList<>();
+
+        temp_count = 0;
     }
 
     @Override
@@ -150,7 +153,9 @@ class IRFunction extends IRScope {
 
         switch (command) {
             case ASSIGN:
-                commandBuilder.append("assign ").append(args[0]).append(args[1]);
+                String secondArg = args[1];
+                if (args[1] == "temp") secondArg = "_t" + temp_count;
+                commandBuilder.append("assign ").append(args[0]).append(secondArg);
                 break;
         }
 

@@ -186,6 +186,7 @@ public class SemanticChecking extends TigerBaseListener {
         }
     }
 
+    // TODO: WWTTTFFF for cicles generate
     @Override
     public void exitPrecedence_pow(TigerParser.Precedence_powContext ctx){
         if(ctx.getChildCount() != 1) {

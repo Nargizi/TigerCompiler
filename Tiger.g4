@@ -123,44 +123,74 @@ optprefix returns [Type varType, String id]
             : value ASSIGN {$id = $value.id;}
             | /* epsilon */
             ;
-expr returns [Type varType]
-            : precedence_or
+expr returns [Type varType, boolean isSubscript, String varValue, String tail] ///////////////////////////////////////
+            : precedence_or {$isSubscript = $precedence_or.isSubscript;
+                             $varValue = $precedence_or.varValue;
+                             $tail = $precedence_or.tail;}
             ;
-precedence_or returns [Type varType]
-            : precedence_or OR precedence_and
-            | precedence_and
+precedence_or returns [Type varType, boolean isEval = false, boolean isSubscript = false,
+                       String varValue, String tail = ""]
+            : precedence_or OR precedence_and {$isEval = true; $varValue = "temp";}
+            | precedence_and {$isSubscript = $precedence_and.isSubscript;
+                              $varValue = $precedence_and.varValue;
+                              $tail = $precedence_and.tail;}
             ;
-precedence_and returns [Type varType]
-            : precedence_and AND precedence_compare
-            | precedence_compare
+precedence_and returns [Type varType, boolean isEval = false, boolean isSubscript = false,
+                        String varValue, String tail = ""]
+            : precedence_and AND precedence_compare {$isEval = true; $varValue = "temp";}
+            | precedence_compare {$isSubscript = $precedence_compare.isSubscript;
+                                  $varValue = $precedence_compare.varValue;
+                                  $tail = $precedence_compare.tail;}
             ;
-precedence_compare returns [Type varType]
+precedence_compare returns [Type varType, boolean isEval = false, boolean isSubscript = false,
+                            String varValue, String tail = ""]
             : precedence_plus_minus ((EQUAL | NEQUAL | LESS |
-                    GREAT | GREATEQ | LESSEQ) precedence_plus_minus)*
+                    GREAT | GREATEQ | LESSEQ) precedence_plus_minus)+ {$varValue = "temp";}
+            | precedence_plus_minus {$isSubscript = $precedence_plus_minus.isSubscript;
+                                     $varValue = $precedence_plus_minus.varValue;
+                                     $tail = $precedence_plus_minus.tail;}
             ;
-precedence_plus_minus returns [Type varType]
-            : precedence_plus_minus (PLUS | MINUS) precedence_mult_div
-            | precedence_mult_div
+precedence_plus_minus returns [Type varType, boolean isEval = false, boolean isSubscript = false,
+                               String varValue, String tail = ""]
+            : precedence_plus_minus (PLUS | MINUS) precedence_mult_div {$isEval = true; $varValue = "temp";}
+            | precedence_mult_div {$isSubscript = $precedence_mult_div.isSubscript;
+                                   $varValue = $precedence_mult_div.varValue;
+                                   $tail = $precedence_mult_div.tail;}
             ;
-precedence_mult_div returns [Type varType]
-            : precedence_mult_div (MULT | DIV) precedence_pow
-            | precedence_pow
+precedence_mult_div returns [Type varType, boolean isEval = false, boolean isSubscript = false,
+                             String varValue, String tail = "", String action]
+            : precedence_mult_div mult_div precedence_pow {$isEval = true;
+                                                           $varValue = "temp";
+                                                           $action = $mult_div.action;}
+            | precedence_pow {$isSubscript = $precedence_pow.isSubscript;
+                              $varValue = $precedence_pow.varValue;
+                              $tail = $precedence_pow.tail;}
             ;
-precedence_pow returns [Type varType]
-            : precedence_paren POW precedence_pow
-            | precedence_paren
+mult_div returns [String action]
+            : MULT {$action = "mult";}
+            | DIV {$action = "div";}
             ;
-precedence_paren returns [Type varType]
-            : OPENPAREN expr CLOSEPAREN
-            | precedence_trail
+precedence_pow returns [Type varType, boolean isEval = false, boolean isSubscript = false,
+                        String varValue, String tail = ""] ///////////////////////////////////////////////////
+            : precedence_paren POW precedence_pow {$isEval = true; $varValue = "temp";}
+            | precedence_paren {$isSubscript = $precedence_paren.isSubscript;
+                                $varValue = $precedence_paren.varValue;
+                                $tail = $precedence_paren.tail;}
             ;
-precedence_trail returns [Type varType]
-            : const_
-            | value
+precedence_paren returns [Type varType, boolean isSubscript = false, String varValue, String tail = ""]
+            : OPENPAREN expr CLOSEPAREN {$varValue = "temp";}
+            | precedence_trail {$varValue = $precedence_trail.varValue;}
             ;
-value returns [Type varType, String id, boolean isSubscript]
+precedence_trail returns [Type varType, boolean isSubscript, String varValue, String tail = ""]
+            : const_ {$isSubscript = false; $varValue = $const_.varValue;}
+            | value {$isSubscript = $value.isSubscript;
+                     $varValue = $value.id;
+                     $tail = $value.tail;}
+            ;
+value returns [Type varType, String id, boolean isSubscript, String tail]
             : ID value_tail {$id = $ID.text;
-                             $isSubscript = $value_tail.isSubscript;}
+                             $isSubscript = $value_tail.isSubscript;
+                             $tail = $value_tail.varValue;}
             ;
 const_ returns [Type varType, String varValue]
             : INTLIT {$varType = Type.INT; $varValue = $INTLIT.text;}
@@ -174,8 +204,9 @@ expr_list_tail returns [List<Type> params = new ArrayList<>()]
             : COMMA expr expr_list_tail
             | /* epsilon */
             ;
-value_tail returns [boolean isSubscript = false]
-            : OPENBRACK expr CLOSEBRACK {$isSubscript = true;}
+value_tail returns [boolean isSubscript = false, String varValue = ""]
+            : OPENBRACK expr CLOSEBRACK {$isSubscript = true;
+                                         $varValue = $expr.varValue;}
             | /* epsilon */
             ;
 
