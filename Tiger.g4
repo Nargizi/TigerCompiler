@@ -85,7 +85,7 @@ stat returns [boolean hasReturn, boolean outsideBreak = false, List<Integer> bre
       for_stat {$hasReturn = $for_stat.hasReturn;} |
       func_call_stat |
       BREAK SEMICOLON {$outsideBreak = true;
-                       $breakLines = List.of($BREAK.getLine());} |
+                       $breakLines = new ArrayList<>(List.of($BREAK.getLine()));} |
       ret_stat {$hasReturn = true;} |
       let_stat {$hasReturn = $let_stat.hasReturn;
                 $outsideBreak = $let_stat.outsideBreak;

@@ -191,6 +191,9 @@ public class SemanticChecking extends TigerBaseListener {
         if(ctx.getChildCount() != 1) {
             ctx.varType = ((TigerParser.Precedence_parenContext)((RuleNode)ctx.getChild(0)).getRuleContext()).varType;
             Type right = ((TigerParser.Precedence_powContext)((RuleNode)ctx.getChild(2)).getRuleContext()).varType;
+
+            if (right.equals(Type.ERROR)) ctx.varType = Type.ERROR;
+
             checkSemantic(right.equals(Type.FLOAT), ctx.getStart().getLine(), ErrorType.typeError);
         }else{
             ctx.varType = ((TigerParser.Precedence_parenContext)((RuleNode)ctx.getChild(0)).getRuleContext()).varType;
@@ -202,7 +205,9 @@ public class SemanticChecking extends TigerBaseListener {
         if(ctx.getChildCount() != 1) {
             Type left = ((TigerParser.Precedence_mult_divContext)((RuleNode)ctx.getChild(0)).getRuleContext()).varType;
             Type right = ((TigerParser.Precedence_powContext)((RuleNode)ctx.getChild(2)).getRuleContext()).varType;
-            if (left.equals(Type.FLOAT) || right.equals(Type.FLOAT))
+            if (left.equals(Type.ERROR) || right.equals(Type.ERROR))
+                ctx.varType = Type.ERROR;
+            else if (left.equals(Type.FLOAT) || right.equals(Type.FLOAT))
                 ctx.varType = Type.FLOAT;
             else
                 ctx.varType = Type.INT;
@@ -213,14 +218,18 @@ public class SemanticChecking extends TigerBaseListener {
 
     @Override
     public void exitPrecedence_plus_minus(TigerParser.Precedence_plus_minusContext ctx) {
-        if(ctx.getChildCount() != 1) {
+        if (ctx.getChildCount() != 1) {
             Type left = ((TigerParser.Precedence_plus_minusContext)((RuleNode)ctx.getChild(0)).getRuleContext()).varType;
             Type right = ((TigerParser.Precedence_mult_divContext)((RuleNode)ctx.getChild(2)).getRuleContext()).varType;
-            if (left.equals(Type.FLOAT) || right.equals(Type.FLOAT))
+
+            if (left.equals(Type.ERROR) || right.equals(Type.ERROR))
+                ctx.varType = Type.ERROR;
+            else if (left.equals(Type.FLOAT) || right.equals(Type.FLOAT))
                 ctx.varType = Type.FLOAT;
             else
                 ctx.varType = Type.INT;
-        }else{
+
+        } else {
             ctx.varType = ((TigerParser.Precedence_mult_divContext)((RuleNode)ctx.getChild(0)).getRuleContext()).varType;
         }
     }
@@ -234,7 +243,12 @@ public class SemanticChecking extends TigerBaseListener {
             Type left = ((TigerParser.Precedence_plus_minusContext)((RuleNode)ctx.getChild(0)).getRuleContext()).varType;
             Type right = ((TigerParser.Precedence_plus_minusContext)((RuleNode)ctx.getChild(2)).getRuleContext()).varType;
             checkSemantic(!right.equals(left), ctx.getStart().getLine(), ErrorType.typeError);
-            ctx.varType = Type.INT;
+
+            if (left.equals(Type.ERROR) || right.equals(Type.ERROR))
+                ctx.varType = Type.ERROR;
+            else
+                ctx.varType = Type.INT;
+
         }else{
             ctx.varType = ((TigerParser.Precedence_plus_minusContext)((RuleNode)ctx.getChild(0)).getRuleContext()).varType;
         }
@@ -242,24 +256,34 @@ public class SemanticChecking extends TigerBaseListener {
 
     @Override
     public void exitPrecedence_and(TigerParser.Precedence_andContext ctx) {
-        if(ctx.getChildCount() != 1) {
+        if (ctx.getChildCount() != 1) {
             Type left = ((TigerParser.Precedence_andContext)((RuleNode)ctx.getChild(0)).getRuleContext()).varType;
             Type right = ((TigerParser.Precedence_compareContext)((RuleNode)ctx.getChild(2)).getRuleContext()).varType;
             checkSemantic(right.equals(Type.FLOAT) || left.equals(Type.FLOAT), ctx.getStart().getLine());
-            ctx.varType = Type.INT;
-        }else{
+
+            if (left.equals(Type.ERROR) || right.equals(Type.ERROR))
+                ctx.varType = Type.ERROR;
+            else
+                ctx.varType = Type.INT;
+
+        } else {
             ctx.varType = ((TigerParser.Precedence_compareContext)((RuleNode)ctx.getChild(0)).getRuleContext()).varType;
         }
     }
 
     @Override
     public void exitPrecedence_or(TigerParser.Precedence_orContext ctx) {
-        if(ctx.getChildCount() != 1) {
+        if (ctx.getChildCount() != 1) {
             Type left = ((TigerParser.Precedence_orContext)((RuleNode)ctx.getChild(0)).getRuleContext()).varType;
             Type right = ((TigerParser.Precedence_andContext)((RuleNode)ctx.getChild(2)).getRuleContext()).varType;
             checkSemantic(right.equals(Type.FLOAT) || left.equals(Type.FLOAT), ctx.getStart().getLine());
-            ctx.varType = Type.INT;
-        }else{
+
+            if (left.equals(Type.ERROR) || right.equals(Type.ERROR))
+                ctx.varType = Type.ERROR;
+            else
+                ctx.varType = Type.INT;
+
+        } else {
             ctx.varType = ((TigerParser.Precedence_andContext)((RuleNode)ctx.getChild(0)).getRuleContext()).varType;
         }
     }
@@ -298,7 +322,7 @@ public class SemanticChecking extends TigerBaseListener {
         if (rType.equals(Type.ERROR) || lType.equals(Type.ERROR))
             return;
         int line = ctx.getStart().getLine();
-        checkSemantic(!(rType.equals(lType) || (rType.equals(Type.INT) && rType.equals(Type.FLOAT))), line, ErrorType.typeError);
+        checkSemantic(!(rType.equals(lType) || (rType.equals(Type.INT) && lType.equals(Type.FLOAT))), line, ErrorType.typeError);
     }
 
     @Override
@@ -466,7 +490,7 @@ public class SemanticChecking extends TigerBaseListener {
                 System.err.println("Break statement outside of loop");
                 break;
             case comparisonError:
-                System.out.println("Comparison is not associative operator");
+                System.err.println("Comparison is not associative operator");
             default:
         }
     }
