@@ -284,7 +284,7 @@ public class SemanticChecking extends TigerBaseListener {
         if (rType.equals(Type.ERROR) || lType.equals(Type.ERROR))
             return;
         int line = ctx.getStart().getLine();
-        checkSemantic(!(rType.equals(lType) || (rType.equals(Type.INT) && rType.equals(Type.FLOAT))), line, ErrorType.typeError);
+        checkSemantic(!(rType.equals(lType) || (rType.equals(Type.INT) && lType.equals(Type.FLOAT))), line, ErrorType.typeError);
     }
 
     @Override
