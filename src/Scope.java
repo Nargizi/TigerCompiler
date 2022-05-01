@@ -9,6 +9,8 @@ public interface Scope{
 
     boolean hasSymbol(String symbolName);
 
+    void removeSymbol(String symbolName);
+
     String getName();
 }
 class GenericScope implements Scope{
@@ -36,6 +38,8 @@ class GenericScope implements Scope{
     public boolean hasSymbol(String symbolName) {
         return symbols.containsKey(symbolName);
     }
+
+    public void removeSymbol(String symbolName){ symbols.remove(symbolName);}
 
     @Override
     public String getName() {

@@ -40,17 +40,22 @@ public class SemanticChecking extends TigerBaseListener {
 
     @Override
     public void enterFunct(TigerParser.FunctContext ctx) {
-        checkSemantic(!ctx.hasReturn, ctx.getStop().getLine(), ErrorType.noReturnError);
+        if(checkSemantic(!ctx.hasReturn, ctx.getStop().getLine(), ErrorType.noReturnError)) {
+            checkSemantic(!ctx.hasReturn, ctx.getStart().getLine(), ErrorType.noReturnError);
+            ctx.semError = true;
+        }
         for(var line: ctx.breakLines)
             checkSemantic(ctx.outsideBreak, line, ErrorType.outsideBreakError);
         checkSemantic(symbolTable.getLast().hasSymbol(ctx.id), ctx.getStart().getLine(), ErrorType.redefineError);
         Symbol function = new Symbol(ctx.id);
         ctx.retType = getBaseType(ctx.retType);
-        if(checkSemantic(ctx.retType.isArray(), ctx.getStart().getLine(), ErrorType.arrayTypeError))
+        if(checkSemantic(ctx.retType.isArray(), ctx.getStart().getLine(), ErrorType.arrayTypeError)) {
             ctx.retType = Type.ERROR;
+            ctx.semError = true;
+        }
 
         for(int i = 0; i < ctx.params.size(); ++i){
-            if(checkSemantic(getBaseType(ctx.params.get(i)).isArray(), ctx.getStart().getLine(), ErrorType.arrayTypeError))
+            if((getBaseType(ctx.params.get(i))).isArray())
                 ctx.params.set(i, Type.ERROR);
         }
 
@@ -64,6 +69,8 @@ public class SemanticChecking extends TigerBaseListener {
     @Override
     public void exitFunct(TigerParser.FunctContext ctx) {
         symbolTable.popScope();
+        if(ctx.semError)
+            symbolTable.getLast().removeSymbol(ctx.id);
     }
 
     @Override
@@ -119,6 +126,8 @@ public class SemanticChecking extends TigerBaseListener {
             return;
         }
 
+        if (checkSemantic(getBaseType(ctx.varType).isArray(), ctx.getStart().getLine(), ErrorType.arrayTypeError))
+            return;
         Symbol param = new Symbol(ctx.id);
         param.attributes.put("varType", ctx.varType);
 

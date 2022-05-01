@@ -34,7 +34,7 @@ id_list returns [ArrayList<String> idList = new ArrayList<String>()]
                                 $idList.addAll($id_list.idList);}
             ;
 optional_init: ASSIGN const_ | /* epsilon */;
-funct returns [String id, Type retType, List<Type> params, boolean hasReturn, boolean outsideBreak, List<Integer> breakLines]
+funct returns [String id, Type retType, List<Type> params, boolean hasReturn, boolean outsideBreak, List<Integer> breakLines, boolean semError = false]
             : FUNCTION ID OPENPAREN param_list CLOSEPAREN ret_type BEGIN stat_seq END {$id = $ID.text;
                                                                                        $retType = $ret_type.varType;
                                                                                        $params = $param_list.params;
