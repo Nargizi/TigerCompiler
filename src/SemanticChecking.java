@@ -41,7 +41,6 @@ public class SemanticChecking extends TigerBaseListener {
 
     @Override
     public void enterFunct(TigerParser.FunctContext ctx) {
-        System.out.println(ctx.retType);
         if(checkSemantic(!ctx.hasReturn && !ctx.retType.equals(Type.VOID), ctx.getStop().getLine(), ErrorType.noReturnError)) {
             checkSemantic(!ctx.hasReturn, ctx.getStart().getLine(), ErrorType.noReturnError);
             ctx.semError = true;
@@ -453,7 +452,7 @@ public class SemanticChecking extends TigerBaseListener {
                 System.err.println("Break statement outside of loop");
                 break;
             case comparisonError:
-                System.out.println("Comparison is not associative operator");
+                System.err.println("Comparison is not associative operator");
             default:
         }
     }
